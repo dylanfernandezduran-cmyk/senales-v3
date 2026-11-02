@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PULSE Señales BTC v3 (papel)</title><meta name="theme-color" content="#05070d"><meta name="color-scheme" content="dark">
+<title>Señales BTC v3 (papel)</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070d'/%3E%3Cpath d='M6 21l7-8 5 5 8-10' fill='none' stroke='%232ecc71' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"><meta name="theme-color" content="#05070d"><meta name="color-scheme" content="dark">
 <style>
 :root{--bg:#05070d;--cd:#0e1320;--ln:#1e2638;--tx:#e8ecf4;--mu:#8a93a0;--g:#2ecc71;--r:#e74c3c;--a:#f5b942}
 *{box-sizing:border-box}
@@ -20,7 +20,7 @@ table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:
 button.l{background:none;border:0;color:var(--mu);font:inherit;font-size:13px;text-decoration:underline;padding:6px 0;margin-right:14px}
 .er{color:var(--r);font-size:13px}
 </style></head><body>
-<nav><b>PULSE</b><span class="mu sm">Señales BTC v3</span><a href="./index.html">Dashboard</a><a href="./senales2.html">v2</a></nav>
+<nav><b>Señales BTC v3</b></nav>
 <div class="sel"><button data-iv="5m">5m</button><button data-iv="15m">15m</button></div>
 
 <div class="p">
@@ -57,9 +57,9 @@ button.l{background:none;border:0;color:var(--mu);font:inherit;font-size:13px;te
 (function(){'use strict';
 const MS={'5m':3e5,'15m':9e5},FEE=0.02,WIN=45000,$=id=>document.getElementById(id);
 const NAMES={trend:'Tendencia',revert:'Reversión',fav:'Favorito'};
-let iv=localStorage.getItem('p2_iv');if(!MS[iv])iv='5m';
+let iv=localStorage.getItem('sv3_iv');if(!MS[iv])iv='5m';
 let spot=null,cur=null,busy=false,meta=null,odds=null,candles=[],candAt=0;
-const K=()=>'p2_recs_'+iv;
+const K=()=>'sv3_recs_'+iv;
 const load=()=>{try{return JSON.parse(localStorage.getItem(K()))||[]}catch(e){return[]}};
 const save=a=>{try{localStorage.setItem(K(),JSON.stringify(a.slice(-1500)))}catch(e){}};
 const fmt=n=>n==null||!isFinite(n)?'—':'$'+n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -151,7 +151,7 @@ function tick(){if(!cur)return;const left=cur.T+1-Date.now(),s=Math.max(0,Math.c
  $('cd').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
  $('fill').style.width=(100*(Date.now()%MS[iv])/MS[iv]).toFixed(1)+'%';
  if(left<=-1500&&!busy)refresh()}
-document.querySelectorAll('.sel button').forEach(b=>b.onclick=()=>{iv=b.dataset.iv;localStorage.setItem('p2_iv',iv);cur=null;meta=null;odds=null;candles=[];candAt=0;busy=false;$('dir').textContent='…';$('dir').className='dir WAIT';render();refresh()});
+document.querySelectorAll('.sel button').forEach(b=>b.onclick=()=>{iv=b.dataset.iv;localStorage.setItem('sv3_iv',iv);cur=null;meta=null;odds=null;candles=[];candAt=0;busy=false;$('dir').textContent='…';$('dir').className='dir WAIT';render();refresh()});
 $('rst').onclick=()=>{if(confirm('¿Borrar el marcador de '+iv+'?')){localStorage.removeItem(K());render()}};
 $('exp').onclick=async()=>{const t=JSON.stringify(load());try{await navigator.clipboard.writeText(t);$('exp').textContent='Copiado'}catch(e){prompt('Copia los datos:',t)}setTimeout(()=>$('exp').textContent='Copiar datos (JSON)',1500)};
 connect();render();refresh();

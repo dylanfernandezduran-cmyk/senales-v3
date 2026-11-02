@@ -1,0 +1,161 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PULSE Señales BTC v3 (papel)</title><meta name="theme-color" content="#05070d"><meta name="color-scheme" content="dark">
+<style>
+:root{--bg:#05070d;--cd:#0e1320;--ln:#1e2638;--tx:#e8ecf4;--mu:#8a93a0;--g:#2ecc71;--r:#e74c3c;--a:#f5b942}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{padding:calc(10px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+nav{display:flex;gap:14px;align-items:center;margin-bottom:10px}nav b{font-size:18px;letter-spacing:.3px}nav a{color:var(--mu);text-decoration:none;font-size:13px}nav a:first-of-type{margin-left:auto}
+.sel{display:flex;gap:8px;margin:6px 0 10px}.sel button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--ln);background:var(--cd);color:var(--mu);font:inherit;font-weight:600}.sel button.on{color:var(--tx);border-color:#4b6bff}
+.p{background:var(--cd);border:1px solid var(--ln);border-radius:14px;padding:14px;margin-bottom:12px}
+h3{margin:0 0 8px;font-size:15px}.mu{color:var(--mu)}.sm{font-size:12.5px}
+.dir{font-size:38px;font-weight:800;text-align:center;margin:8px 0 2px;line-height:1.1}.UP{color:var(--g)}.DOWN{color:var(--r)}.WAIT{color:var(--a)}
+.cd{text-align:center;font-size:22px;font-variant-numeric:tabular-nums;font-weight:700}
+.bar{height:4px;background:var(--ln);border-radius:4px;margin:8px 0 12px;overflow:hidden}.bar i{display:block;height:100%;background:#4b6bff;width:0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g2 b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.w{background:#2a2110;border:1px solid #5c4716;color:#f0d9a0;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}th,td{padding:7px 4px;text-align:right;border-bottom:1px solid var(--ln)}th:first-child,td:first-child{text-align:left}th{color:var(--mu);font-weight:500}
+.hist{display:flex;flex-wrap:wrap;gap:3px;margin-top:10px}.hist i{width:9px;height:9px;border-radius:2px}.hist .h{background:var(--g)}.hist .m{background:var(--r)}
+button.l{background:none;border:0;color:var(--mu);font:inherit;font-size:13px;text-decoration:underline;padding:6px 0;margin-right:14px}
+.er{color:var(--r);font-size:13px}
+</style></head><body>
+<nav><b>PULSE</b><span class="mu sm">Señales BTC v3</span><a href="./index.html">Dashboard</a><a href="./senales2.html">v2</a></nav>
+<div class="sel"><button data-iv="5m">5m</button><button data-iv="15m">15m</button></div>
+
+<div class="p">
+ <div class="mu sm" id="tgt" style="text-align:center">Cargando…</div>
+ <div class="dir WAIT" id="dir">…</div>
+ <div class="mu sm" id="why" style="text-align:center;min-height:18px"></div>
+ <div class="cd" id="cd">--:--</div><div class="bar"><i id="fill"></i></div>
+ <div class="g2">
+  <div><span class="mu sm">Objetivo (precio a superar)</span><b id="op">—</b><span class="mu sm" id="ops"></span></div>
+  <div><span class="mu sm">Precio Chainlink ahora</span><b id="px">—</b><span class="sm" id="df"></span></div>
+  <div><span class="mu sm">Polymarket: sube</span><b id="ou">—</b></div>
+  <div><span class="mu sm">Polymarket: baja</span><b id="od">—</b></div>
+ </div>
+ <div class="er" id="err"></div>
+</div>
+
+<div class="w">Solo papel, sin dinero real. En la revisión del 24-oct, la regla v1 acertó 47.8% fuera de muestra. Esta v3 siempre dice Sube o Baja y prueba tres métodos a la vez con las cuotas reales de cada ventana. El resultado grande sigue al método con mejor acierto, pero con pocas señales eso puede ser pura suerte.</div>
+
+<div class="p">
+ <h3>Marcador por estrategia (5m/15m según lo elegido arriba)</h3>
+ <table><thead><tr><th>Estrategia</th><th>Señales</th><th>Acierto</th><th>Ganancia por $1</th></tr></thead><tbody id="tb"></tbody></table>
+ <p class="mu sm" id="note" style="margin:10px 0 0"></p>
+ <div class="hist" id="hist"></div>
+ <p style="margin:10px 0 0"><button class="l" id="exp">Copiar datos (JSON)</button><button class="l" id="rst">Borrar marcador</button></p>
+</div>
+
+<div class="p"><h3>Cómo funciona</h3>
+<p class="sm mu" style="margin:0 0 8px">Nunca hay ESPERA: cada ventana tiene señal. La señal se fija una vez, en los primeros 45 s de cada ventana, con velas ya cerradas de Binance. Si abres la página más tarde, la ventana se muestra pero no se registra, porque las cuotas ya se habrían movido.</p>
+<p class="sm mu" style="margin:0 0 8px"><b style="color:var(--tx)">Tendencia:</b> suma +1 o −1 por EMA9 vs EMA21, RSI14 (55/45) y ratio taker (0.52/0.48). Si el total es positivo, sube; si es negativo, baja; si empata, copia el color de la última vela.<br><b style="color:var(--tx)">Reversión:</b> lo contrario de Tendencia.<br><b style="color:var(--tx)">Favorito:</b> el lado que Polymarket cotiza arriba de 50¢ al abrir.</p>
+<p class="sm mu" style="margin:0 0 8px">La ganancia se calcula con la cuota real del lado elegido al abrir: si ganas, 1/cuota − 1; si pierdes, −1; menos 2% de comisión estimada por señal. Con menos de 300 señales no concluyas nada.</p>
+<p class="sm mu" style="margin:0">Resultado: primero el oficial de Polymarket (gamma-api); si a los 3 min no aparece, la vela de Binance (marcada como no oficial).</p></div>
+
+<script>
+(function(){'use strict';
+const MS={'5m':3e5,'15m':9e5},FEE=0.02,WIN=45000,$=id=>document.getElementById(id);
+const NAMES={trend:'Tendencia',revert:'Reversión',fav:'Favorito'};
+let iv=localStorage.getItem('p2_iv');if(!MS[iv])iv='5m';
+let spot=null,cur=null,busy=false,meta=null,odds=null,candles=[],candAt=0;
+const K=()=>'p2_recs_'+iv;
+const load=()=>{try{return JSON.parse(localStorage.getItem(K()))||[]}catch(e){return[]}};
+const save=a=>{try{localStorage.setItem(K(),JSON.stringify(a.slice(-1500)))}catch(e){}};
+const fmt=n=>n==null||!isFinite(n)?'—':'$'+n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+const cents=n=>n==null?'—':(100*n).toFixed(0)+'¢';
+const lbl=d=>d==='UP'?'SUBE ▲':d==='DOWN'?'BAJA ▼':'ESPERA';
+function tf(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||8000);
+ return fetch(u,{cache:'no-store',signal:c.signal}).then(r=>{clearTimeout(t);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()},e=>{clearTimeout(t);throw e})}
+function ema(v,n){if(v.length<n)return null;const k=2/(n+1);let e=v.slice(0,n).reduce((a,b)=>a+b,0)/n;for(let i=n;i<v.length;i++)e=v[i]*k+e*(1-k);return e}
+function rsi(v,n){if(v.length<=n)return null;let g=0,l=0;for(let i=1;i<=n;i++){const d=v[i]-v[i-1];d>0?g+=d:l-=d}g/=n;l/=n;
+ for(let i=n+1;i<v.length;i++){const d=v[i]-v[i-1];g=(g*(n-1)+(d>0?d:0))/n;l=(l*(n-1)+(d<0?-d:0))/n}return l===0?(g===0?50:100):100-100/(1+g/l)}
+// ---- Chainlink spot (feed público de Polymarket) ----
+function connect(){let w;try{w=new WebSocket('wss://ws-live-data.polymarket.com')}catch(e){return setTimeout(connect,4000)}
+ let p=null;w.onopen=()=>{w.send(JSON.stringify({action:'subscribe',subscriptions:[{topic:'crypto_prices_chainlink',type:'*',filters:'{"symbol":"btc/usd"}'}]}));p=setInterval(()=>{if(w.readyState===1)try{w.send('PING')}catch(e){}},5000)};
+ w.onmessage=m=>{try{const j=JSON.parse(m.data),d=j&&j.payload;if(!d)return;
+  if(Array.isArray(d.data)&&d.data.length)spot=+d.data[d.data.length-1].value;else if(d.symbol==='btc/usd'&&d.value!=null)spot=+d.value}catch(e){}};
+ w.onclose=()=>{clearInterval(p);setTimeout(connect,3000)};w.onerror=()=>{try{w.close()}catch(e){}}}
+// ---- Polymarket ----
+const iso=s=>new Date(s*1000).toISOString().replace(/\.\d{3}Z$/,'Z');
+async function pmEvent(t){const a=await tf(`https://gamma-api.polymarket.com/events?slug=btc-updown-${iv}-${Math.floor(t/1000)}`,7000);return a&&a[0]}
+async function mid(tok){try{const j=await tf('https://clob.polymarket.com/midpoint?token_id='+tok,5000);const v=+j.mid;if(v>0&&v<1)return v}catch(e){}return null}
+async function pmLive(tOpen){
+ if(!meta||meta.t!==tOpen||meta.iv!==iv){meta=null;const e=await pmEvent(tOpen),m=e&&e.markets&&e.markets[0];if(!m)return;
+  const o=JSON.parse(m.outcomes||'[]'),tk=JSON.parse(m.clobTokenIds||'[]'),em=e.eventMetadata||m.eventMetadata||{};
+  meta={t:tOpen,iv,up:tk[o.indexOf('Up')],down:tk[o.indexOf('Down')],ptb:+em.priceToBeat>0?+em.priceToBeat:null}}
+ if(meta.ptb==null){try{const em=(await pmEvent(tOpen)).eventMetadata;if(em&&+em.priceToBeat>0)meta.ptb=+em.priceToBeat}catch(e){}}
+ if(!meta.up||!meta.down)return;
+ let [u,d]=await Promise.all([mid(meta.up),mid(meta.down)]);if(u==null&&d!=null)u=1-d;if(d==null&&u!=null)d=1-u;
+ if(u!=null)odds={t:tOpen,iv,up:u,down:d,at:Date.now()}}
+// ---- Velas Binance (sin respaldo: sin taker la regla cambia en silencio) ----
+async function getCandles(){if(Date.now()-candAt<15000&&candles.length)return candles;
+ const k=await tf(`https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=${iv}&limit=120`,8000);
+ candles=k.map(x=>({t:+x[0],T:+x[6],o:+x[1],c:+x[4],v:+x[5],tb:+x[9]}));candAt=Date.now();return candles}
+function strategies(cs,tOpen,od){
+ const cl=cs.filter(x=>x.T<tOpen&&x.t<tOpen);if(cl.length<40)return null;
+ const c=cl.map(x=>x.c),e9=ema(c,9),e21=ema(c,21),r=rsi(c,14),L=cl[cl.length-1],tk=L.v>0?L.tb/L.v:null;
+ const sc=(e9>e21?1:e9<e21?-1:0)+(r==null?0:r>55?1:r<45?-1:0)+(tk==null?0:tk>0.52?1:tk<0.48?-1:0);
+ const trend=sc>0?'UP':sc<0?'DOWN':(L.c>=L.o?'UP':'DOWN'),rev=trend==='UP'?'DOWN':'UP';
+ const fav=od?(od.up>=0.5?'UP':'DOWN'):null;
+ return {score:sc,s:{trend,revert:rev,fav}}}
+// ---- Ciclo principal ----
+async function refresh(){
+ if(busy)return;busy=true;const my=iv;
+ try{
+  const now=Date.now(),tOpen=Math.floor(now/MS[iv])*MS[iv];
+  const cs=await getCandles();if(my!==iv)return;
+  await pmLive(tOpen).catch(()=>{});if(my!==iv)return;
+  let recs=load(),rec=recs.find(r=>r.t===tOpen);
+  const od=odds&&odds.t===tOpen&&odds.iv===iv?odds:null,sg=strategies(cs,tOpen,od);
+  if(!rec&&sg&&now-tOpen<=WIN&&od){rec={t:tOpen,sc:sg.score,s:sg.s,o:{up:od.up,down:od.down},res:null};recs.push(rec)}
+  // calificar
+  const byT=new Map(cs.map(c=>[c.t,c]));let n=0;
+  for(const r of recs){if(r.res||r.t+MS[iv]>now||n>=6)continue;n++;
+   try{const e=await pmEvent(r.t),m=e&&e.markets&&e.markets[0];
+    if(m&&m.closed){const pr=JSON.parse(m.outcomePrices||'[]'),o=JSON.parse(m.outcomes||'[]'),u=+pr[o.indexOf('Up')];
+     if(u===1||u===0){r.res=u===1?'UP':'DOWN';r.how='PM';continue}}}catch(e){}
+   if(now>r.t+MS[iv]+180000){const c=byT.get(r.t);if(c&&c.T<now){r.res=c.c>c.o?'UP':c.c<c.o?'DOWN':'FLAT';r.how='EX'}}}
+  save(recs);
+  cur={t:tOpen,T:tOpen+MS[iv]-1,rec,sg,od};
+  $('err').textContent='';
+ }catch(e){console.warn(e);$('err').textContent='No pude cargar datos ('+(e&&e.message||e)+'). Reintento solo.'}
+ finally{busy=false;render()}}
+function stats(recs){const out={};
+ for(const k in NAMES){let n=0,w=0,pnl=0,np=0;
+  for(const r of recs){const d=r.s&&r.s[k];if(!d||(r.res!=='UP'&&r.res!=='DOWN'))continue;
+   n++;const hit=d===r.res;if(hit)w++;
+   const p=r.o&&(d==='UP'?r.o.up:r.o.down);if(p>0&&p<1){np++;pnl+=(hit?1/p-1:-1)-FEE}}
+  out[k]={n,w,pnl,np}}return out}
+function leader(st){let best='trend',ba=-1;for(const k in NAMES){const s=st[k],a=s.n?s.w/s.n:0;if(s.n>0&&a>ba){ba=a;best=k}}return best}
+function render(){
+ document.querySelectorAll('.sel button').forEach(b=>b.classList.toggle('on',b.dataset.iv===iv));
+ const recs=load(),st=stats(recs);
+ $('tb').innerHTML=Object.keys(NAMES).map(k=>{const s=st[k],a=s.n?100*s.w/s.n:null;
+  return `<tr><td>${NAMES[k]}</td><td>${s.n}</td><td>${a==null?'—':a.toFixed(1)+'%'}</td><td class="${s.np&&s.pnl>0?'UP':s.np?'DOWN':''}">${s.np?(s.pnl>=0?'+':'')+s.pnl.toFixed(2):'—'}</td></tr>`}).join('');
+ const mx=Math.max(...Object.values(st).map(s=>s.n));
+ $('note').textContent=mx<300?`Llevas ${mx} de 300 señales. Todavía es ruido.`:'Ya hay 300 o más. Solo cuenta una estrategia con ganancia positiva sostenida después de comisión.';
+ $('hist').innerHTML=recs.filter(r=>r.s&&r.s.trend&&(r.res==='UP'||r.res==='DOWN')).slice(-80).map(r=>`<i class="${r.s.trend===r.res?'h':'m'}" title="${new Date(r.t).toLocaleString('es-MX')} tendencia"></i>`).join('');
+ if(!cur)return;
+ const L=cur.rec,sg=cur.sg,now=Date.now(),S=L?L.s:(sg?sg.s:null),lead=leader(st),dir=S?(S[lead]||S.trend):null,hh=new Date(cur.t).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+ $('dir').textContent=lbl(dir||'WAIT');$('dir').className='dir '+(dir||'WAIT');
+ $('tgt').textContent=L?`Vela ${iv} de ${hh}: señal fija, registrada al abrir`:`Vela ${iv} de ${hh}: no se registra (abriste tarde o faltan cuotas)`;
+ $('why').innerHTML=S?`Sigue a <b>${NAMES[lead]}</b>. Tendencia: ${lbl(S.trend)}, Reversión: ${lbl(S.revert)}, Favorito: ${S.fav?lbl(S.fav):'—'}`:'';
+ const ptb=meta&&meta.t===cur.t?meta.ptb:null,o=ptb!=null?ptb:null;
+ $('op').textContent=fmt(o);$('ops').textContent=o!=null?'Oficial de Polymarket':'Aún no publicado; verifícalo en la app';
+ $('px').textContent=fmt(spot);
+ if(o!=null&&spot!=null){const d=spot-o;$('df').innerHTML=`<b class="${d>=0?'UP':'DOWN'}" style="display:inline;font-size:13px">${d>=0?'+':''}${d.toFixed(2)}</b> <span class="mu">vs objetivo</span>`}else $('df').textContent='';
+ const od=cur.od||(L&&L.o&&{up:L.o.up,down:L.o.down});$('ou').textContent=cents(od&&od.up);$('od').textContent=cents(od&&od.down);
+}
+function tick(){if(!cur)return;const left=cur.T+1-Date.now(),s=Math.max(0,Math.ceil(left/1000));
+ $('cd').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+ $('fill').style.width=(100*(Date.now()%MS[iv])/MS[iv]).toFixed(1)+'%';
+ if(left<=-1500&&!busy)refresh()}
+document.querySelectorAll('.sel button').forEach(b=>b.onclick=()=>{iv=b.dataset.iv;localStorage.setItem('p2_iv',iv);cur=null;meta=null;odds=null;candles=[];candAt=0;busy=false;$('dir').textContent='…';$('dir').className='dir WAIT';render();refresh()});
+$('rst').onclick=()=>{if(confirm('¿Borrar el marcador de '+iv+'?')){localStorage.removeItem(K());render()}};
+$('exp').onclick=async()=>{const t=JSON.stringify(load());try{await navigator.clipboard.writeText(t);$('exp').textContent='Copiado'}catch(e){prompt('Copia los datos:',t)}setTimeout(()=>$('exp').textContent='Copiar datos (JSON)',1500)};
+connect();render();refresh();
+setInterval(tick,1000);setInterval(refresh,10000);setInterval(()=>{if(cur)render()},2000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
+})();
+</script></body></html>
